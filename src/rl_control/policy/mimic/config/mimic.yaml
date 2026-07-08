@@ -1,0 +1,46 @@
+# policy_merged.onnx: obs_dim=216, action_dim=29, 29-DOF full body
+onnx_path: "out/policy_merged.onnx"
+npz_dir: "out/npz"
+
+physical_dt: 0.01        # control period (main loop 100Hz)
+decimation: 1            # policy at 100Hz (each NPZ frame reused 2x — faster feedback)
+num_actions: 29
+motor_nums: 29
+warm_start_time: 0.5     # seconds of warm-start blending at motion entry
+stand_duration_s: 1.0    # standing phase before/after each motion clip
+hold_final_reference: false
+max_target_step_standing: null    # standing: no limit (arm suppression already prevents vibration)
+max_target_step_motion: null      # motion: no limit
+
+# Interpolation speed for FSMStateMimicDefault (smooth transition to default pose).
+# 0.01 → ~1 s at 100 Hz control rate.
+interp_step: 0.01
+
+# Conservative kp/kd for static standing poses (XML joint order, 29 values).
+# Used by FSMStateMimic during default_pose / pre_stand / return_stand phases,
+# and by FSMStateMimicDefault for the hold-at-default pose.
+# The ONNX model's joint_stiffness / joint_damping are tuned for motion tracking
+# with active policy inference. Using them for static holding causes arm
+# oscillation because elbow_yaw, wrist_pitch, wrist_roll have action_scale = 0
+# in the policy — they rely purely on high-gain PD with no network correction.
+# These conservative gains avoid that oscillation.
+# Full 29-joint kp/kd for static standing / default-pose holding (XML order).
+# Legs + waist match ONNX joint_stiffness/joint_damping (needed to support body
+# weight).  Arms are softened relative to ONNX: elbow_yaw (500→150) and wrist_*
+# (kd 8→2) have action_scale=0 in the policy, so they rely purely on PD with no
+# network correction.  Conservative gains prevent oscillation without affecting
+# tracking (the policy doesn't control these joints anyway).
+kps_stand: [
+  600.0, 600.0, 350.0, 650.0, 60.0, 35.0,     # left leg  (matches ONNX)
+  600.0, 600.0, 350.0, 650.0, 60.0, 35.0,     # right leg (matches ONNX)
+  400.0, 400.0, 400.0,                          # waist    (matches ONNX)
+  150.0, 50.0, 50.0, 150.0, 150.0, 200.0, 200.0,   # left arm  (elbow_yaw 150, wrist kd 2)
+  150.0, 50.0, 50.0, 150.0, 150.0, 200.0, 200.0,   # right arm (elbow_yaw 150, wrist kd 2)
+]
+kds_stand: [
+  15.0, 15.0, 10.0, 14.0, 7.0, 3.0,            # left leg  (matches ONNX)
+  15.0, 15.0, 10.0, 14.0, 7.0, 3.0,            # right leg (matches ONNX)
+  10.0, 10.0, 10.0,                              # waist    (matches ONNX)
+  5.0, 2.5, 2.5, 5.0, 5.0, 2.0, 2.0,           # left arm  (conservative)
+  5.0, 2.5, 2.5, 5.0, 5.0, 2.0, 2.0,           # right arm (conservative)
+]

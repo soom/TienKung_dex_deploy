@@ -1,0 +1,19 @@
+# 机器人控制系统依赖（Ubuntu 22.04 / ROS humble / Python 3.10）
+numpy==1.24.4
+onnxruntime==1.19.2
+onnx==1.19.1
+pandas==1.5.3
+pyyaml==6.0.3
+scipy==1.15.3
+transforms3d==0.4.2
+
+# 仿真与输入设备
+mujoco==3.8.0
+pynput==1.8.1
+inputs==0.5
+
+# colcon 构建工具链（ament_python 包构建必需）
+colcon-common-extensions==0.3.0
+empy==3.3.4
+lark==1.3.1
+catkin-pkg==1.1.0
